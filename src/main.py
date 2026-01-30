@@ -1,16 +1,23 @@
 from datetime import datetime, timedelta
+from scorer import score_vulnerability
+
 
 def generate_poam(findings):
     poam = []
+
     for f in findings:
-        due = datetime.today() + timedelta(days=f["sla_days"])
+        risk, sla_days = score_vulnerability(f["severity"])
+        due = datetime.today() + timedelta(days=sla_days)
+
         poam.append({
             "id": f["id"],
-            "risk": f["risk"],
+            "severity": f["severity"],
+            "risk": risk,
             "system": f["system"],
             "remediation": f["remediation"],
             "due_date": due.strftime("%Y-%m-%d")
         })
+
     return poam
 
 
@@ -18,17 +25,15 @@ if __name__ == "__main__":
     sample_findings = [
         {
             "id": "VULN-001",
-            "risk": "High",
+            "severity": "High",
             "system": "S3 Storage",
-            "remediation": "Enable encryption at rest",
-            "sla_days": 30
+            "remediation": "Enable encryption at rest"
         },
         {
             "id": "VULN-002",
-            "risk": "Medium",
+            "severity": "Medium",
             "system": "IAM",
-            "remediation": "Rotate stale credentials",
-            "sla_days": 60
+            "remediation": "Rotate stale credentials"
         }
     ]
 
@@ -37,3 +42,4 @@ if __name__ == "__main__":
     print("\nPOA&M Tracker\n-------------")
     for item in poam:
         print(item)
+

@@ -1,3 +1,5 @@
+from workflow import apply_workflow
+
 import argparse
 from datetime import datetime, timedelta
 
@@ -79,7 +81,19 @@ if __name__ == "__main__":
     findings = load_findings(args.input)
     poam = generate_poam(findings)
 
-    # Metrics (after poam exists)
+    # Apply workflow AFTER poam exists
+    wf = apply_workflow(poam)
+    poam = wf.updated
+
+    if wf.escalated:
+        print("\nEscalations")
+        print("-----------")
+        for item in wf.escalated:
+            print(
+                f"{item['id']} | {item['risk']} | {item.get('system','')} | {item.get('control','')} | ESCALATED"
+            )
+
+    # Metrics (after workflow updates status/buckets)
     metrics = calculate_metrics(poam)
     print("\nRisk Metrics")
     print("-----------")

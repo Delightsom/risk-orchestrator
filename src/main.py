@@ -1,16 +1,17 @@
-import sys
+import argparse
 from datetime import datetime, timedelta
 
 from ingest import load_findings
 from report import write_csv, write_exec_md
+from metrics import calculate_metrics
 
 
-def risk_priority(risk):
+def risk_priority(risk: str) -> int:
     return {
         "Critical": 1,
         "High": 2,
         "Medium": 3,
-        "Low": 4
+        "Low": 4,
     }.get(risk, 5)
 
 
@@ -19,51 +20,90 @@ def generate_poam(findings):
     today = datetime.today().date()
 
     for f in findings:
-        due_dt = datetime.today() + timedelta(days=f["sla_days"])
+        due_dt = datetime.today() + timedelta(days=int(f["sla_days"]))
         due_date = due_dt.date()
 
-        days_to_due = (due_date - today).days
-        overdue_days = abs(days_to_due) if days_to_due < 0 else 0
-        status = "OVERDUE" if days_to_due < 0 else "OPEN"
+        days_until_due = (due_date - today).days
+        overdue = days_until_due < 0
 
-        age_bucket = (
-            "0-30" if f["sla_days"] <= 30 else
-            "31-60" if f["sla_days"] <= 60 else
-            "61-90" if f["sla_days"] <= 90 else
-            "90+"
+        poam.append(
+            {
+                "id": f["id"],
+                "risk": f["risk"],
+                "priority": risk_priority(f["risk"]),
+                "system": f["system"],
+                "control": f.get("control", ""),
+                "remediation": f["remediation"],
+                "sla_days": int(f["sla_days"]),
+                "due_date": due_date.strftime("%Y-%m-%d"),
+                "status": "OVERDUE" if overdue else "OPEN",
+                "days_until_due": days_until_due,
+                "days_past_due": abs(days_until_due) if overdue else 0,
+            }
         )
 
-        poam.append({
-            "id": f["id"],
-            "risk": f["risk"],
-            "priority": risk_priority(f["risk"]),
-            "system": f["system"],
-            "control": f["control"],
-            "remediation": f["remediation"],
-            "due_date": due_date.strftime("%Y-%m-%d"),
-            "status": status,
-            "days_to_due": days_to_due,
-            "overdue_days": overdue_days,
-            "age_bucket": age_bucket
-        })
-
-    poam.sort(key=lambda x: (x["priority"], -x["overdue_days"]))
+    poam.sort(key=lambda x: (x["priority"], x["days_until_due"]))
     return poam
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Risk Orchestrator: generate a POA&M register + executive summary from vulnerability findings."
+    )
+
+    parser.add_argument(
+        "input",
+        nargs="?",
+        default="data/vulns_sample.csv",
+        help="Path to input CSV findings file (default: data/vulns_sample.csv)",
+    )
+
+    parser.add_argument(
+        "--out",
+        default="reports",
+        help="Output directory for generated reports (default: reports)",
+    )
+
+    parser.add_argument(
+        "--format",
+        default="csv,md",
+        help="Comma-separated output formats: csv, md (default: csv,md)",
+    )
+
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
-    csv_input = sys.argv[1] if len(sys.argv) > 1 else "data/vulns_sample.csv"
+    args = parse_args()
 
-    findings = load_findings(csv_input)
+    findings = load_findings(args.input)
     poam = generate_poam(findings)
 
-    csv_path = write_csv(poam)
-    md_path = write_exec_md(poam)
+    # Metrics (after poam exists)
+    metrics = calculate_metrics(poam)
+    print("\nRisk Metrics")
+    print("-----------")
+    for k, v in metrics.items():
+        print(f"{k}: {v}")
 
-    print("\nPOA&M Tracker\n-------------")
+    # Outputs
+    formats = {f.strip().lower() for f in args.format.split(",") if f.strip()}
+    csv_path = None
+    md_path = None
+
+    if "csv" in formats:
+        csv_path = write_csv(poam, out_dir=args.out)
+
+    if "md" in formats:
+        md_path = write_exec_md(poam, out_dir=args.out)
+
+    # Console output
+    print("\nPOA&M Tracker")
+    print("-------------")
     for item in poam:
         print(item)
 
-    print(f"\nGenerated: {csv_path}")
-    print(f"Generated: {md_path}")
+    if csv_path:
+        print(f"\nGenerated: {csv_path}")
+    if md_path:
+        print(f"Generated: {md_path}")

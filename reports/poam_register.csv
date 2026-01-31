@@ -1,5 +1,5 @@
-id,risk,priority,system,control,remediation,due_date,status,days_to_due,overdue_days,age_bucket
-VULN-003,Critical,1,EC2,SI-2,"Patch OpenSSL to latest",2026-02-14,OPEN,15,0,0-30
-VULN-001,High,2,S3 Storage,SC-28,"Enable encryption at rest",2026-03-01,OPEN,30,0,0-30
-VULN-002,Medium,3,IAM,IA-5,"Rotate stale credentials",2026-03-31,OPEN,60,0,31-60
-VULN-004,Low,4,CloudTrail,AU-12,"Enable multi-region trails",2026-01-25,OVERDUE,-5,5,0-30
+id,risk,priority,system,control,remediation,sla_days,due_date,status,days_until_due,days_past_due
+VULN-003,Critical,1,EC2,SI-2,Patch OpenSSL to latest,15,2026-02-14,OPEN,15,0
+VULN-001,High,2,S3 Storage,SC-28,Enable encryption at rest,30,2026-03-01,OPEN,30,0
+VULN-002,Medium,3,IAM,IA-5,Rotate stale credentials,60,2026-03-31,OPEN,60,0
+VULN-004,Low,4,CloudTrail,AU-12,Enable multi-region trails,-5,2026-01-25,OVERDUE,-5,5

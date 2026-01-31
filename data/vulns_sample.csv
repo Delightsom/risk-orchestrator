@@ -1,0 +1,8 @@
+id,risk,system,control,remediation,sla_days
+VULN-001,High,S3 Storage,SC-28,Enable encryption at rest,30
+VULN-002,Medium,IAM,IA-5,Rotate stale credentials,60
+VULN-003,Critical,EC2,SI-2,Patch OpenSSL to latest,15
+VULN-004,Low,CloudTrail,AU-12,Enable multi-region trails,-5
+
+
+
